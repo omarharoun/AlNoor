@@ -25,7 +25,6 @@ COPY patches/ ./patches/
 
 COPY packages/admin/package.json ./packages/admin/
 COPY packages/api/package.json ./packages/api/
-COPY packages/app/package.json ./packages/app/
 COPY packages/cache/package.json ./packages/cache/
 COPY packages/captcha/package.json ./packages/captcha/
 COPY packages/cassandra/package.json ./packages/cassandra/
@@ -54,6 +53,24 @@ COPY packages/virus_scan/package.json ./packages/virus_scan/
 COPY packages/worker/package.json ./packages/worker/
 COPY packages/http_client/package.json ./packages/http_client/
 COPY packages/schema/package.json ./packages/schema/
+COPY packages/geoip/package.json ./packages/geoip/
+COPY packages/mime_utils/package.json ./packages/mime_utils/
+COPY packages/geo_utils/package.json ./packages/geo_utils/
+COPY packages/markdown_parser/package.json ./packages/markdown_parser/
+COPY packages/nats/package.json ./packages/nats/
+COPY packages/time/package.json ./packages/time/
+COPY packages/app_proxy/package.json ./packages/app_proxy/
+COPY packages/date_utils/package.json ./packages/date_utils/
+COPY packages/kv_client/package.json ./packages/kv_client/
+COPY packages/number_utils/package.json ./packages/number_utils/
+COPY packages/elasticsearch_search/package.json ./packages/elasticsearch_search/
+COPY packages/limits/package.json ./packages/limits/
+COPY packages/list_utils/package.json ./packages/list_utils/
+COPY packages/media_proxy_utils/package.json ./packages/media_proxy_utils/
+COPY packages/openapi/package.json ./packages/openapi/
+COPY packages/i18n/package.json ./packages/i18n/
+COPY packages/locale/package.json ./packages/locale/
+COPY packages/meilisearch_search/package.json ./packages/meilisearch_search/
 COPY fluxer_server/package.json ./fluxer_server/
 COPY fluxer_app/package.json ./fluxer_app/
 
@@ -112,7 +129,25 @@ COPY tsconfigs /usr/src/app/tsconfigs
 COPY packages/ ./packages/
 COPY fluxer_app/ ./fluxer_app/
 
-RUN cd fluxer_app && pnpm build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.93.0 --target wasm32-unknown-unknown
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cargo install wasm-pack
+
+COPY config/config.json /tmp/fluxer-build-config.json
+
+ARG BASE_DOMAIN="omarih.com"
+RUN sed -i "s/chat\.example\.com/${BASE_DOMAIN}/g" /tmp/fluxer-build-config.json
+
+ARG FLUXER_CDN_ENDPOINT=""
+ENV FLUXER_CONFIG=/tmp/fluxer-build-config.json
+ENV FLUXER_CDN_ENDPOINT=${FLUXER_CDN_ENDPOINT}
+RUN cd fluxer_app && pnpm lingui:compile && pnpm build
 
 FROM node:24-trixie-slim AS production
 
@@ -196,4 +231,4 @@ ENV RELEASE_CHANNEL=${RELEASE_CHANNEL}
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 	CMD curl -f http://localhost:8080/_health || exit 1
 
-ENTRYPOINT ["pnpm", "start"]
+ENTRYPOINT ["pnpm", "--filter", "fluxer_server", "start"]

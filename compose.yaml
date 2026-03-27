@@ -20,7 +20,7 @@ services:
     logging: *default-logging
 
   fluxer_server:
-    image: ${FLUXER_SERVER_IMAGE:-ghcr.io/fluxerapp/fluxer-server:stable}
+    image: fluxer-server:local
     container_name: fluxer_server
     restart: unless-stopped
     init: true
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       MEILI_ENV: production
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env or environment}
+      MEILI_MASTER_KEY: 'key:3b444547ec9942bdcdc0efe93981be0cbcf8231e99fa914e5eb6550688f0fa45'
       MEILI_DB_PATH: /meili_data
       MEILI_HTTP_ADDR: 0.0.0.0:7700
     ports:
@@ -104,6 +104,17 @@ services:
       timeout: 5s
       retries: 5
     logging: *default-logging
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats
+    restart: unless-stopped
+    command: [
+      "-js",
+      "--auth", "462fe3d3401d5c6da60de9bdd5181e9e6ea9a7ee63d83ea69ccf2bdad3e547c1"
+    ]
+    ports:
+      - "4222:4222"
+
 
 volumes:
   valkey_data:
