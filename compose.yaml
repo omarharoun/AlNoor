@@ -20,7 +20,7 @@ services:
     logging: *default-logging
 
   fluxer_server:
-    image: fluxer-server:local
+    image: omarharoun/fluxer
     container_name: fluxer_server
     restart: unless-stopped
     init: true
