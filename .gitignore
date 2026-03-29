@@ -66,6 +66,7 @@ devenv.local.nix
 **/Thumbs.db
 **/yarn-debug.log*
 **/yarn-error.log*
+**/config
 /.devserver-cache.json
 **/.devserver-cache.json
 /.fluxer/
