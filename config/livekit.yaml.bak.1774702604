@@ -1,7 +1,7 @@
 port: 7880
 
 keys:
-  '33deeabe203771b2': '20197b96d4dc7c5ed18609735ebf62ce1bedcac37c45b1f3'
+  '<LIVEKIT_API_KEY>': '20197b96d4dc7c5ed18609735ebf62ce1bedcac37c45b1f3'
 
 rtc:
   tcp_port: 7881

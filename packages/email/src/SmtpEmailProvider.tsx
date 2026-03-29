@@ -36,6 +36,7 @@ export interface SmtpEmailConfig {
 
 export class SmtpEmailProvider implements IEmailProvider {
 	private readonly transporter: nodemailer.Transporter;
+	private readonly authUser: string;
 
 	constructor(config: SmtpEmailConfig) {
 		this.transporter = nodemailer.createTransport({
@@ -50,6 +51,7 @@ export class SmtpEmailProvider implements IEmailProvider {
 			greetingTimeout: config.greetingTimeoutMs,
 			socketTimeout: config.socketTimeoutMs,
 		});
+		this.authUser = config.username;
 	}
 
 	async sendEmail(message: EmailMessage): Promise<boolean> {
@@ -57,6 +59,10 @@ export class SmtpEmailProvider implements IEmailProvider {
 			await this.transporter.sendMail({
 				to: message.to,
 				from: `${message.from.name} <${message.from.email}>`,
+				// Ensure the SMTP envelope sender matches the authenticated user so the
+				// server accepts the MAIL FROM address even if the message header
+				// 'from' is a different display address.
+				envelope: { from: this.authUser, to: message.to },
 				subject: message.subject,
 				text: message.text,
 			});
