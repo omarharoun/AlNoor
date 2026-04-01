@@ -36,12 +36,14 @@ shutdown() {
 
 (
 	cd "$admin_dir"
+	mkdir -p ./public/static
 	./node_modules/.bin/tailwindcss -i ./src/styles/app.css -o ./public/static/app.css --watch=always
 ) &
 P1=$!
 
 (
 	cd "$marketing_dir"
+	mkdir -p ./public/static
 	./node_modules/.bin/tailwindcss -i ./src/styles/app.css -o ./public/static/app.css --watch=always
 ) &
 P2=$!

@@ -7,8 +7,8 @@
 		"./*": "./*"
 	},
 	"scripts": {
-		"build:css": "tailwindcss -i ./src/styles/app.css -o ./public/static/app.css --minify",
-		"build:css:watch": "tailwindcss -i ./src/styles/app.css -o ./public/static/app.css --watch=always",
+		"build:css": "mkdir -p ./public/static && tailwindcss -i ./src/styles/app.css -o ./public/static/app.css --minify",
+		"build:css:watch": "mkdir -p ./public/static && tailwindcss -i ./src/styles/app.css -o ./public/static/app.css --watch=always",
 		"typecheck": "tsgo --noEmit"
 	},
 	"dependencies": {
