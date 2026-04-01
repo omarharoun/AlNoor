@@ -24,53 +24,62 @@ import nodemailer from 'nodemailer';
 const logger = createLogger('@fluxer/email/src/SmtpEmailProvider');
 
 export interface SmtpEmailConfig {
-	host: string;
-	port: number;
-	username: string;
-	password: string;
-	secure?: boolean;
-	connectionTimeoutMs?: number;
-	greetingTimeoutMs?: number;
-	socketTimeoutMs?: number;
+        host: string;
+        port: number;
+        username: string;
+        password: string;
+        secure?: boolean;
+        connectionTimeoutMs?: number;
+        greetingTimeoutMs?: number;
+        socketTimeoutMs?: number;
 }
 
 export class SmtpEmailProvider implements IEmailProvider {
-	private readonly transporter: nodemailer.Transporter;
-	private readonly authUser: string;
+        private readonly transporter: nodemailer.Transporter;
+        private readonly envelopeFrom?: string;
 
-	constructor(config: SmtpEmailConfig) {
-		this.transporter = nodemailer.createTransport({
-			host: config.host,
-			port: config.port,
-			secure: config.secure ?? true,
-			auth: {
-				user: config.username,
-				pass: config.password,
-			},
-			connectionTimeout: config.connectionTimeoutMs,
-			greetingTimeout: config.greetingTimeoutMs,
-			socketTimeout: config.socketTimeoutMs,
-		});
-		this.authUser = config.username;
-	}
+        constructor(config: SmtpEmailConfig) {
+                this.transporter = nodemailer.createTransport({
+                        host: config.host,
+                        port: config.port,
+                        secure: config.secure ?? true,
+                        auth: {
+                                user: config.username,
+                                pass: config.password,
+                        },
+                        connectionTimeout: config.connectionTimeoutMs,
+                        greetingTimeout: config.greetingTimeoutMs,
+                        socketTimeout: config.socketTimeoutMs,
+                });
+                this.envelopeFrom = isPlausibleEmail(config.username) ? config.username : undefined;
+        }
 
-	async sendEmail(message: EmailMessage): Promise<boolean> {
-		try {
-			await this.transporter.sendMail({
-				to: message.to,
-				from: `${message.from.name} <${message.from.email}>`,
-				// Ensure the SMTP envelope sender matches the authenticated user so the
-				// server accepts the MAIL FROM address even if the message header
-				// 'from' is a different display address.
-				envelope: { from: this.authUser, to: message.to },
-				subject: message.subject,
-				text: message.text,
-			});
-			logger.debug({to: message.to}, 'Email sent via SMTP');
-			return true;
-		} catch (error) {
-			logger.error({error}, 'SMTP send failed');
-			return false;
-		}
-	}
+        async sendEmail(message: EmailMessage): Promise<boolean> {
+                try {
+                        const mailOptions: nodemailer.SendMailOptions = {
+                                to: message.to,
+                                from: `${message.from.name} <${message.from.email}>`,
+                                subject: message.subject,
+                                text: message.text,
+                        };
+
+                        // Some providers (including Resend SMTP) use non-email usernames (e.g. "resend").
+                        // Only force MAIL FROM to auth user when that username is a valid email address.
+                        if (this.envelopeFrom) {
+                                mailOptions.envelope = {from: this.envelopeFrom, to: message.to};
+                        }
+
+                        await this.transporter.sendMail(mailOptions);
+                        logger.debug({to: message.to}, 'Email sent via SMTP');
+                        return true;
+                } catch (error) {
+                        logger.error({error}, 'SMTP send failed');
+                        return false;
+                }
+        }
+}
+
+function isPlausibleEmail(value: string): boolean {
+        // Basic gate to avoid invalid MAIL FROM values such as "resend".
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

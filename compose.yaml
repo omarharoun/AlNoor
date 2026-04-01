@@ -20,10 +20,11 @@ services:
     logging: *default-logging
 
   fluxer_server:
-    image: omarharoun/fluxer
+    image: fluxer-server:local
     container_name: fluxer_server
     restart: unless-stopped
     init: true
+    mem_limit: 2g
     environment:
       FLUXER_CONFIG: /usr/src/app/config/config.json
       NODE_ENV: production
