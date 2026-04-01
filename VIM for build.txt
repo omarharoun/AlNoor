@@ -1,0 +1,4 @@
+#Correct Build Command 
+DOCKER_BUILDKIT=1 docker build   -t fluxer-server:latest   --build-arg BASE_DOMAIN=omarih.com   --build-arg FLUXER_CDN_ENDPOINT=   --build-arg INCLUDE_NSFW_ML=true   --cache-to type=local,dest=.buildx-cache,mode=max   --cache-from type=local,src=.buildx-cache   -f fluxer_server/Dockerfile .
+# start/recreate only server
+docker compose up -d fluxer_server
