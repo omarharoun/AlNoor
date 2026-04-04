@@ -9,9 +9,6 @@ InstallModes:
   - silentWithProgress
 UpgradeBehavior: install
 Installers:
-  - Architecture: x64
-    InstallerUrl: https://api.fluxer.app/dl/desktop/stable/win32/x64/PLACEHOLDER_VERSION/setup
-    InstallerSha256: PLACEHOLDER_SHA256_X64
   - Architecture: arm64
     InstallerUrl: https://api.fluxer.app/dl/desktop/stable/win32/arm64/PLACEHOLDER_VERSION/setup
     InstallerSha256: PLACEHOLDER_SHA256_ARM64

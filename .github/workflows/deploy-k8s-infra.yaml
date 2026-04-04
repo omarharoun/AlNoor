@@ -1,0 +1,69 @@
+name: deploy k8s infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+        default: prod
+        description: Deployment environment
+      namespace:
+        type: string
+        required: false
+        default: alnoor
+        description: Kubernetes namespace
+
+concurrency:
+  group: deploy-k8s-infra-${{ inputs.environment || 'prod' }}-${{ inputs.namespace || 'alnoor' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy k8s infrastructure
+    if: ${{ (inputs.environment || 'prod') != 'prod' || github.ref_name == 'main' }}
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 25
+    environment:
+      name: ${{ format('k8s-{0}', inputs.environment || 'prod') }}
+    env:
+      ENVIRONMENT: ${{ inputs.environment || 'prod' }}
+      NAMESPACE: ${{ inputs.namespace || 'alnoor' }}
+      KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG_B64" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Show cluster info
+        run: |
+          kubectl version --client
+          kubectl cluster-info
+
+      - name: Apply namespace
+        run: kubectl apply -f k8s/base/namespace.yaml
+
+      - name: Apply Cassandra base
+        run: kubectl apply -k k8s/base-cassandra
+
+      - name: Apply network policies
+        run: kubectl apply -k k8s/security/network-policies
+
+      - name: Show key resources
+        run: |
+          kubectl -n "$NAMESPACE" get statefulset
+          kubectl -n "$NAMESPACE" get networkpolicy

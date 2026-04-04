@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: alnoor
+resources:
+  - service-cassandra-headless.yaml
+  - service-cassandra.yaml
+  - secret-cassandra-auth.example.yaml
+  - statefulset-cassandra.yaml

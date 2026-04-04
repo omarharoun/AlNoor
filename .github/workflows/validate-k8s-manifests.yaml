@@ -1,0 +1,79 @@
+name: validate k8s manifests
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - k8s/**
+      - .github/workflows/validate-k8s-manifests.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Helm and Kustomize output
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Helm lint
+        run: helm lint ./k8s/helm/fluxer
+
+      - name: Helm template dev
+        run: helm template alnoor ./k8s/helm/fluxer -f ./k8s/helm/fluxer/values-dev.yaml > /tmp/helm-dev.yaml
+
+      - name: Helm template stage
+        run: helm template alnoor ./k8s/helm/fluxer -f ./k8s/helm/fluxer/values-stage.yaml > /tmp/helm-stage.yaml
+
+      - name: Helm template prod
+        run: helm template alnoor ./k8s/helm/fluxer -f ./k8s/helm/fluxer/values-prod.yaml > /tmp/helm-prod.yaml
+
+      - name: Kustomize build base
+        run: kubectl kustomize ./k8s/base > /tmp/kustomize-base.yaml
+
+      - name: Kustomize build cassandra
+        run: kubectl kustomize ./k8s/base-cassandra > /tmp/kustomize-cassandra.yaml
+
+      - name: Kustomize build network policies
+        run: kubectl kustomize ./k8s/security/network-policies > /tmp/kustomize-netpol.yaml
+
+      - name: Validate rendered manifests
+        run: |
+          kubeconform -strict -summary /tmp/helm-dev.yaml
+          kubeconform -strict -summary /tmp/helm-stage.yaml
+          kubeconform -strict -summary /tmp/helm-prod.yaml
+          kubeconform -strict -summary /tmp/kustomize-base.yaml
+          kubeconform -strict -summary /tmp/kustomize-cassandra.yaml
+          kubeconform -strict -summary /tmp/kustomize-netpol.yaml
+
+      - name: Report placeholders that must be replaced before go-live
+        run: |
+          rg -n "replace-me|chat.example.com|age1replacewithyourteampublickey" \
+            k8s/helm/fluxer/values-prod.yaml \
+            k8s/base/configmap-fluxer-config.example.yaml \
+            k8s/base/secret-env.example.yaml \
+            || true
+
+      - name: Enforce TLS and HSTS annotations in base ingress
+        run: |
+          rg -n "force-ssl-redirect|ssl-redirect|Strict-Transport-Security|secretName" k8s/base/ingress-fluxer-server.yaml
+
+      - name: Enforce prod guard in k8s deploy workflows
+        run: |
+          rg -n "inputs.environment \|\| 'prod'\) != 'prod' \|\| github.ref_name == 'main'" .github/workflows/deploy-k8s-app.yaml .github/workflows/deploy-k8s-infra.yaml .github/workflows/migrate-cassandra-k8s.yaml

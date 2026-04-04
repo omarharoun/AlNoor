@@ -1,0 +1,75 @@
+name: deploy k8s app
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+        default: prod
+        description: Target values file
+      namespace:
+        type: string
+        required: false
+        default: alnoor
+        description: Kubernetes namespace
+      release_name:
+        type: string
+        required: false
+        default: alnoor
+        description: Helm release name
+
+concurrency:
+  group: deploy-k8s-app-${{ inputs.environment || 'prod' }}-${{ inputs.namespace || 'alnoor' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Fluxer app chart
+    if: ${{ (inputs.environment || 'prod') != 'prod' || github.ref_name == 'main' }}
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 25
+    environment:
+      name: ${{ format('k8s-{0}', inputs.environment || 'prod') }}
+    env:
+      ENVIRONMENT: ${{ inputs.environment || 'prod' }}
+      NAMESPACE: ${{ inputs.namespace || 'alnoor' }}
+      RELEASE_NAME: ${{ inputs.release_name || 'alnoor' }}
+      KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG_B64" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Validate selected values file
+        run: test -f "k8s/helm/fluxer/values-${ENVIRONMENT}.yaml"
+
+      - name: Deploy chart
+        run: |
+          helm upgrade --install "$RELEASE_NAME" ./k8s/helm/fluxer \
+            --namespace "$NAMESPACE" \
+            --create-namespace \
+            -f "k8s/helm/fluxer/values-${ENVIRONMENT}.yaml" \
+            --wait \
+            --timeout 15m
+
+      - name: Show workload status
+        run: |
+          kubectl -n "$NAMESPACE" get deploy,sts,po,svc

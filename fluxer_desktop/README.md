@@ -20,6 +20,8 @@ The desktop client reads an optional `settings.json` file from the user data dir
 | --------- | ------ | ------------------------ | ------------------------------- | ----------------------------------- |
 | `app_url` | string | `https://web.fluxer.app` | `https://web.canary.fluxer.app` | URL of the web application to load. |
 
+If you set `FLUXER_APP_URL` while running the desktop build, that URL is baked into the packaged app as the default. A local `settings.json` `app_url` still overrides it.
+
 ### Example
 
 ```json
@@ -29,3 +31,13 @@ The desktop client reads an optional `settings.json` file from the user data dir
 ```
 
 When `app_url` is set, the desktop client loads that URL instead of the default and treats its origin as trusted for permissions, navigation, and the local RPC server.
+
+### Build-time default URL
+
+Example:
+
+```bash
+FLUXER_APP_URL=https://my-instance.example.com pnpm --filter fluxer_desktop run build
+```
+
+After packaging, the desktop app will open that URL unless a user sets their own `settings.json` override.

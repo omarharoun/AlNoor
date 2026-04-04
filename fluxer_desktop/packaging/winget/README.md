@@ -9,7 +9,7 @@ The `PackageVersion` and `InstallerSha256` fields are set to placeholder values 
 ## Manifest files
 
 - `Fluxer.Fluxer.yaml` -- version manifest (required)
-- `Fluxer.Fluxer.installer.yaml` -- installer details for x64 and arm64
+- `Fluxer.Fluxer.installer.yaml` -- installer details for arm64
 - `Fluxer.Fluxer.locale.en-US.yaml` -- default locale metadata
 
 ## Validating
@@ -27,7 +27,7 @@ winget install --manifest .
 ## Fetching the latest version
 
 ```bash
-curl -s https://api.fluxer.app/dl/desktop/stable/win32/x64/latest | jq
+curl -s https://api.fluxer.app/dl/desktop/stable/win32/arm64/latest | jq
 ```
 
 This returns a JSON object containing `version`, `pub_date`, and `files` with download URLs and SHA256 checksums for each format.

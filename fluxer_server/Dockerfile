@@ -142,7 +142,7 @@ RUN cargo install wasm-pack
 
 COPY config/config.json /tmp/fluxer-build-config.json
 
-ARG BASE_DOMAIN="omarih.com"
+ARG BASE_DOMAIN="chat.fluxer.app"
 RUN sed -i "s/chat\.example\.com/${BASE_DOMAIN}/g" /tmp/fluxer-build-config.json
 
 ARG FLUXER_CDN_ENDPOINT=""

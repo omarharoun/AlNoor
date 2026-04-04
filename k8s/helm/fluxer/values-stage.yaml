@@ -1,0 +1,87 @@
+replicaCount: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: true
+  hosts:
+    - host: stage-chat.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+fluxerConfig:
+  json: |
+    {
+      "$schema": "../packages/config/src/ConfigSchema.json",
+      "env": "production",
+      "domain": {
+        "base_domain": "stage-chat.example.com",
+        "public_scheme": "https",
+        "public_port": 443
+      },
+      "instance": {
+        "deployment_mode": "microservices",
+        "self_hosted": true
+      },
+      "database": {
+        "backend": "cassandra",
+        "cassandra": {
+          "hosts": ["cassandra-0.cassandra.database.svc.cluster.local"],
+          "keyspace": "fluxer",
+          "local_dc": "dc1",
+          "username": "replace-me",
+          "password": "replace-me"
+        }
+      },
+      "internal": {
+        "kv": "redis://valkey:6379/0",
+        "kv_mode": "standalone",
+        "media_proxy": "http://fluxer-server.alnoor.svc.cluster.local/media",
+        "queue": "http://fluxer-server.alnoor.svc.cluster.local/queue"
+      },
+      "services": {
+        "server": {
+          "host": "0.0.0.0",
+          "port": 8080,
+          "static_dir": "/usr/src/app/assets"
+        },
+        "app_proxy": {
+          "assets_dir": "/usr/src/app/assets"
+        },
+        "nats": {
+          "core_url": "nats://nats:4222",
+          "jetstream_url": "nats://nats:4222",
+          "auth_token": "replace-me"
+        },
+        "gateway": {
+          "port": 8082,
+          "admin_reload_secret": "replace-me",
+          "media_proxy_endpoint": "https://stage-chat.example.com/media"
+        },
+        "admin": {
+          "secret_key_base": "replace-me",
+          "oauth_client_secret": "replace-me"
+        },
+        "media_proxy": {
+          "secret_key": "replace-me"
+        }
+      },
+      "auth": {
+        "sudo_mode_secret": "replace-me",
+        "connection_initiation_secret": "replace-me",
+        "vapid": {
+          "public_key": "replace-me",
+          "private_key": "replace-me"
+        }
+      },
+      "s3": {
+        "access_key_id": "replace-me",
+        "secret_access_key": "replace-me",
+        "endpoint": "https://s3.example.com"
+      }
+    }

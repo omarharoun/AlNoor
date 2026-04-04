@@ -18,7 +18,7 @@ makepkg -si
 ## Fetching the latest version
 
 ```bash
-curl -s https://api.fluxer.app/dl/desktop/stable/linux/x64/latest | jq
+curl -s https://api.fluxer.app/dl/desktop/stable/linux/arm64/latest | jq
 ```
 
 This returns a JSON object containing `version`, `pub_date`, and `files` with download URLs and SHA256 checksums for each format.

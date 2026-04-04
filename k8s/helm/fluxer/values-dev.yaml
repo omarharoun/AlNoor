@@ -1,0 +1,79 @@
+replicaCount: 1
+
+autoscaling:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1.5Gi
+
+ingress:
+  enabled: false
+
+env:
+  NODE_ENV: production
+
+fluxerConfig:
+  json: |
+    {
+      "$schema": "../packages/config/src/ConfigSchema.json",
+      "env": "production",
+      "domain": {
+        "base_domain": "localhost",
+        "public_scheme": "http",
+        "public_port": 8080
+      },
+      "instance": {
+        "deployment_mode": "monolith",
+        "self_hosted": true
+      },
+      "database": {
+        "backend": "sqlite",
+        "sqlite_path": "/usr/src/app/data/db/fluxer.db"
+      },
+      "internal": {
+        "kv": "redis://valkey:6379/0",
+        "kv_mode": "standalone"
+      },
+      "services": {
+        "server": {
+          "host": "0.0.0.0",
+          "port": 8080,
+          "static_dir": "/usr/src/app/assets"
+        },
+        "nats": {
+          "core_url": "nats://nats:4222",
+          "jetstream_url": "nats://nats:4222",
+          "auth_token": "replace-me"
+        },
+        "gateway": {
+          "port": 8082,
+          "admin_reload_secret": "replace-me",
+          "media_proxy_endpoint": "http://127.0.0.1:8080/media"
+        },
+        "admin": {
+          "secret_key_base": "replace-me",
+          "oauth_client_secret": "replace-me"
+        },
+        "media_proxy": {
+          "secret_key": "replace-me"
+        }
+      },
+      "auth": {
+        "sudo_mode_secret": "replace-me",
+        "connection_initiation_secret": "replace-me",
+        "vapid": {
+          "public_key": "replace-me",
+          "private_key": "replace-me"
+        }
+      },
+      "s3": {
+        "access_key_id": "replace-me",
+        "secret_access_key": "replace-me",
+        "endpoint": "http://minio.minio.svc.cluster.local:9000"
+      }
+    }

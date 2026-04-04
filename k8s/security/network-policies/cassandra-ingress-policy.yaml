@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cassandra-ingress-from-fluxer-and-migrator
+  namespace: alnoor
+spec:
+  podSelector:
+    matchLabels:
+      app: cassandra
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: fluxer-server
+        - podSelector:
+            matchLabels:
+              app: cassandra-migrations
+      ports:
+        - protocol: TCP
+          port: 9042
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cassandra
+      ports:
+        - protocol: TCP
+          port: 7000
+        - protocol: TCP
+          port: 7001

@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2026 Fluxer Contributors
- *
- * This file is part of Fluxer.
- *
- * Fluxer is free software: you can redistribute it and/or modify
+			name: productName,
+			comment: 'Instant messaging and VoIP application',
+			categories: 'Network;InstantMessaging;',
+			startupWMClass: isCanary ? 'fluxer-canary' : 'fluxer',
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -58,26 +58,25 @@ module.exports = {
 		category: 'public.app-category.social-networking',
 		icon: `build_resources/${iconDir}/_compiled/AppIcon.icns`,
 		darkModeSupport: true,
-		hardenedRuntime: true,
+		hardenedRuntime: false,
 		gatekeeperAssess: false,
-		entitlements: isCanary
-			? 'build_resources/entitlements.mac.canary.plist'
-			: 'build_resources/entitlements.mac.stable.plist',
-		entitlementsInherit: 'build_resources/entitlements.mac.inherit.plist',
+		entitlements: null,
+		entitlementsInherit: null,
 		target: [
 			{
 				target: 'dmg',
-				arch: ['x64', 'arm64'],
+				arch: ['arm64'],
 			},
 			{
 				target: 'zip',
-				arch: ['x64', 'arm64'],
+				arch: ['arm64'],
 			},
 		],
 		extendInfo: {
 			NSMicrophoneUsageDescription: 'Fluxer needs access to your microphone to enable voice chat features.',
 			NSCameraUsageDescription: 'Fluxer needs access to your camera to enable video chat features.',
 			NSAppleEventsUsageDescription: 'Fluxer needs access to Apple Events for automation features.',
+			NSLocalNetworkUsageDescription: 'Fluxer needs local network access for voice and video calls.',
 		},
 	},
 
@@ -145,12 +144,6 @@ module.exports = {
 				arch: ['x64', 'arm64'],
 			},
 		],
-		desktop: {
-			Name: productName,
-			Comment: 'Instant messaging and VoIP application',
-			Categories: 'Network;InstantMessaging;',
-			StartupWMClass: isCanary ? 'fluxer-canary' : 'fluxer',
-		},
 	},
 
 	deb: {

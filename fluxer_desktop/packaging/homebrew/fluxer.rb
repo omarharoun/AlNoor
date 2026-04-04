@@ -1,16 +1,9 @@
 cask "fluxer" do
-  arch arm: "arm64", intel: "x64"
-
   version "PLACEHOLDER_VERSION"
 
-  on_arm do
-    sha256 "PLACEHOLDER_SHA256_ARM64"
-  end
-  on_intel do
-    sha256 "PLACEHOLDER_SHA256_X64"
-  end
+  sha256 "PLACEHOLDER_SHA256_ARM64"
 
-  url "https://api.fluxer.app/dl/desktop/stable/darwin/#{arch}/#{version}/dmg"
+  url "https://api.fluxer.app/dl/desktop/stable/darwin/arm64/#{version}/dmg"
   name "Fluxer"
   desc "Instant messaging and VoIP application"
   homepage "https://fluxer.app"
@@ -28,7 +21,7 @@ cask "fluxer" do
   app "Fluxer.app"
 
   zap trash: [
-    "~/Library/Application Support/Fluxer",
+    "~/Library/Application Support/fluxer",
     "~/Library/Caches/app.fluxer",
     "~/Library/Caches/app.fluxer.ShipIt",
     "~/Library/Preferences/app.fluxer.plist",

@@ -1,0 +1,64 @@
+name: migrate cassandra k8s
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+        default: prod
+        description: Deployment environment
+      namespace:
+        type: string
+        required: false
+        default: alnoor
+        description: Kubernetes namespace
+
+concurrency:
+  group: migrate-cassandra-k8s-${{ inputs.environment || 'prod' }}-${{ inputs.namespace || 'alnoor' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Run Cassandra migrations in cluster
+    if: ${{ (inputs.environment || 'prod') != 'prod' || github.ref_name == 'main' }}
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 25
+    environment:
+      name: ${{ format('k8s-{0}', inputs.environment || 'prod') }}
+    env:
+      ENVIRONMENT: ${{ inputs.environment || 'prod' }}
+      NAMESPACE: ${{ inputs.namespace || 'alnoor' }}
+      KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+      MIGRATION_JOB_FILE: k8s/base-cassandra/job-cassandra-migrate.example.yaml
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG_B64" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Delete previous migration job if present
+        run: kubectl -n "$NAMESPACE" delete -f "$MIGRATION_JOB_FILE" --ignore-not-found
+
+      - name: Apply migration job
+        run: kubectl -n "$NAMESPACE" apply -f "$MIGRATION_JOB_FILE"
+
+      - name: Wait for migration completion
+        run: kubectl -n "$NAMESPACE" wait --for=condition=complete --timeout=20m job/cassandra-migrations
+
+      - name: Print migration logs
+        if: always()
+        run: kubectl -n "$NAMESPACE" logs job/cassandra-migrations --all-containers=true

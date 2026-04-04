@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cassandra-migrations
+  namespace: alnoor
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: cassandra-migrations
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: workdir
+          emptyDir: {}
+      initContainers:
+        - name: fetch-migrations
+          image: alpine/git:2.47.2
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REPO_URL
+              value: https://github.com/fluxerapp/fluxer.git
+            - name: REPO_REF
+              value: main
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              git clone --depth=1 --branch "${REPO_REF}" "${REPO_URL}" /work/repo
+              test -d /work/repo/fluxer_devops/cassandra/migrations
+          volumeMounts:
+            - name: workdir
+              mountPath: /work
+      containers:
+        - name: migrate
+          image: cassandra:5.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CASSANDRA_HOST
+              value: cassandra-client.alnoor.svc.cluster.local
+            - name: CASSANDRA_PORT
+              value: "9042"
+            - name: CASSANDRA_KEYSPACE
+              value: fluxer
+            - name: CASSANDRA_USERNAME
+              value: cassandra
+            - name: CASSANDRA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cassandra-auth
+                  key: CASSANDRA_PASSWORD
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              cqlsh "${CASSANDRA_HOST}" "${CASSANDRA_PORT}" -u "${CASSANDRA_USERNAME}" -p "${CASSANDRA_PASSWORD}" -e "
+              CREATE KEYSPACE IF NOT EXISTS ${CASSANDRA_KEYSPACE}
+              WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3};"
+
+              cqlsh "${CASSANDRA_HOST}" "${CASSANDRA_PORT}" -u "${CASSANDRA_USERNAME}" -p "${CASSANDRA_PASSWORD}" -e "
+              CREATE TABLE IF NOT EXISTS ${CASSANDRA_KEYSPACE}.schema_migrations (
+                filename text PRIMARY KEY,
+                applied_at timestamp,
+                checksum text
+              );"
+
+              for file in $(ls /work/repo/fluxer_devops/cassandra/migrations/*.cql | sort); do
+                filename="$(basename "$file")"
+                checksum="$(md5sum "$file" | awk '{print $1}')"
+
+                applied_count="$(cqlsh "${CASSANDRA_HOST}" "${CASSANDRA_PORT}" -u "${CASSANDRA_USERNAME}" -p "${CASSANDRA_PASSWORD}" -e \"SELECT COUNT(*) FROM ${CASSANDRA_KEYSPACE}.schema_migrations WHERE filename='${filename}';\" | awk '/^[[:space:]]*[0-9]+[[:space:]]*$/ {print $1; exit}')"
+                applied_count="${applied_count:-0}"
+
+                if [ "$applied_count" != "0" ]; then
+                  echo "Skipping already applied migration: ${filename}"
+                  continue
+                fi
+
+                echo "Applying migration: ${filename}"
+                cqlsh "${CASSANDRA_HOST}" "${CASSANDRA_PORT}" -u "${CASSANDRA_USERNAME}" -p "${CASSANDRA_PASSWORD}" -f "$file"
+                cqlsh "${CASSANDRA_HOST}" "${CASSANDRA_PORT}" -u "${CASSANDRA_USERNAME}" -p "${CASSANDRA_PASSWORD}" -e "
+                INSERT INTO ${CASSANDRA_KEYSPACE}.schema_migrations (filename, applied_at, checksum)
+                VALUES ('${filename}', toTimestamp(now()), '${checksum}');"
+              done
+
+              echo "All migrations completed."
+          volumeMounts:
+            - name: workdir
+              mountPath: /work

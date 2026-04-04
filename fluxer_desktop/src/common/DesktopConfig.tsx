@@ -23,6 +23,8 @@ import {BUILD_CHANNEL} from '@electron/common/BuildChannel';
 import {CANARY_APP_URL, STABLE_APP_URL} from '@electron/common/Constants';
 import log from 'electron-log';
 
+const BUILT_APP_URL = process.env.FLUXER_APP_URL;
+
 const CONFIG_FILE_NAME = 'settings.json';
 
 interface DesktopConfig {
@@ -63,11 +65,15 @@ export function getAppUrl(): string {
 	if (config.app_url) {
 		return config.app_url;
 	}
+
+	if (BUILT_APP_URL) {
+		return BUILT_APP_URL;
+	}
 	return BUILD_CHANNEL === 'canary' ? CANARY_APP_URL : STABLE_APP_URL;
 }
 
 export function getCustomAppUrl(): string | null {
-	return config.app_url ?? null;
+	return config.app_url ?? BUILT_APP_URL ?? null;
 }
 
 export function setCustomAppUrl(appUrl: string | null): void {

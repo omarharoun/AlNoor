@@ -32,7 +32,7 @@ import {getAppUrl, getCustomAppUrl} from '@electron/common/DesktopConfig';
 import {createChildLogger} from '@electron/common/Logger';
 import {registerSpellcheck} from '@electron/main/Spellcheck';
 import {refreshWindowsBadgeOverlay} from '@electron/main/WindowsBadge';
-import {app, BrowserWindow, desktopCapturer, ipcMain, screen, shell} from 'electron';
+import {app, BrowserWindow, desktopCapturer, ipcMain, screen} from 'electron';
 import log from 'electron-log';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -654,9 +654,7 @@ export function createWindow(): BrowserWindow {
 	webContents.on('will-navigate', (event, url) => {
 		if (!isTrustedOrigin(url)) {
 			event.preventDefault();
-			shell.openExternal(url).catch((error) => {
-				log.warn('Failed to open external URL from will-navigate:', error);
-			});
+			log.warn('Blocked untrusted URL from will-navigate:', url);
 		}
 	});
 
@@ -680,9 +678,7 @@ export function createWindow(): BrowserWindow {
 			return {action: 'deny'};
 		}
 
-		shell.openExternal(url).catch((error) => {
-			log.warn('Failed to open external URL from window-open:', error);
-		});
+		log.warn('Blocked untrusted URL from window-open:', url);
 
 		return {action: 'deny'};
 	});

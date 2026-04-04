@@ -1,0 +1,159 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: fluxer-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: chat.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 3Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+probes:
+  readiness:
+    path: /_ready
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  liveness:
+    path: /_live
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startup:
+    path: /_health
+    periodSeconds: 10
+    failureThreshold: 18
+
+env:
+  NODE_ENV: production
+  FLUXER_SERVER_HOST: 0.0.0.0
+  FLUXER_SERVER_PORT: "8080"
+
+envSecrets:
+  FLUXER_CONFIG__SERVICES__NATS__AUTH_TOKEN: replace-me
+  FLUXER_CONFIG__S3__ACCESS_KEY_ID: replace-me
+  FLUXER_CONFIG__S3__SECRET_ACCESS_KEY: replace-me
+  FLUXER_CONFIG__AUTH__SUDO_MODE_SECRET: replace-me
+  FLUXER_CONFIG__AUTH__CONNECTION_INITIATION_SECRET: replace-me
+  FLUXER_CONFIG__SERVICES__ADMIN__SECRET_KEY_BASE: replace-me
+  FLUXER_CONFIG__SERVICES__ADMIN__OAUTH_CLIENT_SECRET: replace-me
+  FLUXER_CONFIG__SERVICES__MEDIA_PROXY__SECRET_KEY: replace-me
+  FLUXER_CONFIG__SERVICES__GATEWAY__ADMIN_RELOAD_SECRET: replace-me
+
+fluxerConfig:
+  enabled: true
+  json: |
+    {
+      "$schema": "../packages/config/src/ConfigSchema.json",
+      "env": "production",
+      "domain": {
+        "base_domain": "chat.example.com",
+        "public_scheme": "https",
+        "public_port": 443
+      },
+      "instance": {
+        "deployment_mode": "monolith",
+        "self_hosted": true
+      },
+      "database": {
+        "backend": "sqlite",
+        "sqlite_path": "/usr/src/app/data/db/fluxer.db"
+      },
+      "internal": {
+        "kv": "redis://valkey:6379/0",
+        "kv_mode": "standalone"
+      },
+      "services": {
+        "server": {
+          "host": "0.0.0.0",
+          "port": 8080,
+          "static_dir": "/usr/src/app/assets"
+        },
+        "nats": {
+          "core_url": "nats://nats:4222",
+          "jetstream_url": "nats://nats:4222",
+          "auth_token": "replace-me"
+        },
+        "gateway": {
+          "port": 8082,
+          "admin_reload_secret": "replace-me",
+          "media_proxy_endpoint": "http://127.0.0.1:8080/media"
+        },
+        "admin": {
+          "secret_key_base": "replace-me",
+          "oauth_client_secret": "replace-me"
+        },
+        "media_proxy": {
+          "secret_key": "replace-me"
+        }
+      },
+      "auth": {
+        "sudo_mode_secret": "replace-me",
+        "connection_initiation_secret": "replace-me",
+        "vapid": {
+          "public_key": "replace-me",
+          "private_key": "replace-me"
+        }
+      },
+      "s3": {
+        "access_key_id": "replace-me",
+        "secret_access_key": "replace-me",
+        "endpoint": "https://s3.example.com"
+      }
+    }
+
+persistence:
+  enabled: true
+  size: 20Gi
+  accessMode: ReadWriteOnce
+
+valkey:
+  enabled: true
+  image: valkey/valkey:8.0.6-alpine
+  persistence:
+    size: 10Gi
+
+nats:
+  enabled: true
+  image: nats:2.10-alpine
+  persistence:
+    size: 5Gi

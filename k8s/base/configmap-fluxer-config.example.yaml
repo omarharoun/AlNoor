@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluxer-config
+data:
+  config.json: |
+    {
+      "$schema": "../packages/config/src/ConfigSchema.json",
+      "env": "production",
+      "domain": {
+        "base_domain": "chat.fluxer.app",
+        "public_scheme": "https",
+        "public_port": 443
+      },
+      "instance": {
+        "deployment_mode": "microservices",
+        "self_hosted": true
+      },
+      "database": {
+        "backend": "cassandra",
+        "cassandra": {
+          "hosts": [
+            "cassandra-0.cassandra.alnoor.svc.cluster.local",
+            "cassandra-1.cassandra.alnoor.svc.cluster.local",
+            "cassandra-2.cassandra.alnoor.svc.cluster.local"
+          ],
+          "keyspace": "fluxer",
+          "local_dc": "dc1",
+          "username": "cassandra",
+          "password": ""
+        }
+      },
+      "internal": {
+        "kv": "redis://valkey:6379/0",
+        "kv_mode": "standalone",
+        "media_proxy": "http://fluxer-server.alnoor.svc.cluster.local/media",
+        "queue": "http://fluxer-server.alnoor.svc.cluster.local/queue"
+      },
+      "services": {
+        "server": {
+          "host": "0.0.0.0",
+          "port": 8080,
+          "static_dir": "/usr/src/app/assets"
+        },
+        "app_proxy": {
+          "assets_dir": "/usr/src/app/assets"
+        },
+        "nats": {
+          "core_url": "nats://nats:4222",
+          "jetstream_url": "nats://nats:4222",
+          "auth_token": ""
+        },
+        "gateway": {
+          "port": 8082,
+          "admin_reload_secret": "",
+          "media_proxy_endpoint": "https://chat.fluxer.app/media"
+        },
+        "admin": {
+          "secret_key_base": "",
+          "oauth_client_secret": ""
+        },
+        "media_proxy": {
+          "secret_key": ""
+        }
+      },
+      "auth": {
+        "sudo_mode_secret": "",
+        "connection_initiation_secret": "",
+        "vapid": {
+          "public_key": "",
+          "private_key": ""
+        }
+      },
+      "s3": {
+        "access_key_id": "",
+        "secret_access_key": "",
+        "endpoint": "https://s3.example.com"
+      }
+    }

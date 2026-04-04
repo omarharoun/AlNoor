@@ -81,6 +81,7 @@ async function buildMain() {
 		plugins: [pathAliasPlugin],
 		define: {
 			'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+			'process.env.FLUXER_APP_URL': JSON.stringify(process.env.FLUXER_APP_URL || ''),
 		},
 		banner: {
 			js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
@@ -106,6 +107,7 @@ async function buildPreload() {
 		plugins: [pathAliasPlugin],
 		define: {
 			'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+			'process.env.FLUXER_APP_URL': JSON.stringify(process.env.FLUXER_APP_URL || ''),
 		},
 	});
 
